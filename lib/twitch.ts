@@ -11,6 +11,7 @@ export const FRESH_S = 60;
 
 type HelixStream = {
   id: string;
+  user_id: string;
   user_login: string;
   user_name: string;
   game_id: string;
@@ -24,6 +25,7 @@ type HelixStream = {
   is_mature: boolean;
 };
 type HelixGame = { id: string; name: string; box_art_url: string };
+type HelixUser = { id: string; profile_image_url: string };
 
 export const hasKeys = () => Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET);
 
@@ -48,15 +50,15 @@ async function requestToken(cached: boolean): Promise<string> {
 
 const appToken = async () => override ?? requestToken(true);
 
-async function helix<T>(path: string, retry = true): Promise<{ data: T[]; pagination?: { cursor?: string } }> {
+async function helix<T>(path: string, retry = true, ttl: number = FRESH_S): Promise<{ data: T[]; pagination?: { cursor?: string } }> {
   const res = await fetch(`${HELIX}${path}`, {
     headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID!, Authorization: `Bearer ${await appToken()}` },
     cache: 'force-cache',
-    next: { revalidate: FRESH_S },
+    next: { revalidate: ttl },
   });
   if (res.status === 401 && retry) {
     override = await requestToken(false); // revoked or expired early
-    return helix(path, false);
+    return helix(path, false, ttl);
   }
   if (!res.ok) throw new Error(`Twitch ${path.split('?')[0]} failed (${res.status})`);
   return res.json();
@@ -65,6 +67,7 @@ async function helix<T>(path: string, retry = true): Promise<{ data: T[]; pagina
 export function toStream(s: HelixStream): Stream {
   return {
     id: s.id,
+    userId: s.user_id,
     login: s.user_login,
     name: s.user_name,
     gameId: s.game_id,
@@ -99,6 +102,16 @@ async function fetchSnapshot(): Promise<Snapshot> {
     const res = await helix<HelixGame>(`/games?${q}`);
     for (const g of res.data) categories[g.id] = { id: g.id, name: g.name, art: g.box_art_url };
   }
+  // Profile pictures: /users takes 100 ids a call. Pictures rarely change, so these are cached for an hour.
+  const userIds = unique.map((s) => s.userId);
+  const avatars = new Map<string, string>();
+  for (let i = 0; i < userIds.length; i += 100) {
+    const q = userIds.slice(i, i + 100).map((id) => `id=${id}`).join('&');
+    const res = await helix<HelixUser>(`/users?${q}`, true, 3600);
+    for (const u of res.data) avatars.set(u.id, u.profile_image_url);
+  }
+  for (const s of unique) s.avatar = avatars.get(s.userId);
+
   return { at: new Date().toISOString(), sample: false, streams: unique, categories };
 }
 

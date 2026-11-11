@@ -80,10 +80,22 @@ function topWithRest(rows: Row[], n: number): Row[] {
   return [...rows.slice(0, n), { id: 'rest', label: 'Everything else', value: rest }];
 }
 
-const channelUrl = (s: Stream) => `https://www.twitch.tv/${s.login}`;
+
 
 export function buildInsights(snap: Snapshot): Insight[] {
   const { streams, at } = snap;
+  // Sample channels are made up, so they get no links.
+  const channelUrl = (s: Stream) => (snap.sample ? undefined : `https://www.twitch.tv/${s.login}`);
+  const channelRow = (s: Stream, value: number, sub = s.game): Row => ({
+    id: s.id,
+    label: s.name,
+    value,
+    sub,
+    image: thumb(s.thumb),
+    avatar: s.avatar,
+    kind: 'channel',
+    href: channelUrl(s),
+  });
   const total = sum(streams.map((s) => s.viewers));
   const n = streams.length;
 
@@ -95,18 +107,12 @@ export function buildInsights(snap: Snapshot): Insight[] {
     value: g.viewers,
     sub: `${g.channels} ${g.channels === 1 ? 'channel' : 'channels'}`,
     image: boxArt(snap.categories[id]?.art),
+    kind: 'category',
   }));
   const top = categoryRows[0];
 
   // Channels
-  const channelRows: Row[] = streams.map((s) => ({
-    id: s.id,
-    label: s.name,
-    value: s.viewers,
-    sub: s.game,
-    image: thumb(s.thumb),
-    href: channelUrl(s),
-  }));
+  const channelRows: Row[] = streams.map((s) => channelRow(s, s.viewers));
   const lead = streams[0];
 
   // Audience size bands
@@ -154,7 +160,7 @@ export function buildInsights(snap: Snapshot): Insight[] {
     .map((s, i) => ({ s, h: hrs[i] }))
     .sort((a, b) => b.h - a.h)
     .slice(0, 12)
-    .map(({ s, h }) => ({ id: s.id, label: s.name, value: h, sub: s.game, image: thumb(s.thumb), href: channelUrl(s) }));
+    .map(({ s, h }) => channelRow(s, h));
 
   // Talking vs playing
   const talk = streams.filter((s) => NON_GAME.has(s.game));
@@ -188,13 +194,13 @@ export function buildInsights(snap: Snapshot): Insight[] {
   // Viewers per channel, per category: where an audience is shared by few channels
   const roomy = byGame
     .filter(([, g]) => g.channels >= 3)
-    .map(([id, g]) => ({ id, label: g.streams[0].game, value: g.viewers / g.channels, sub: `${g.channels} channels`, image: boxArt(snap.categories[id]?.art) }))
+    .map(([id, g]): Row => ({ id, label: g.streams[0].game, value: g.viewers / g.channels, sub: `${g.channels} channels`, image: boxArt(snap.categories[id]?.art), kind: 'category' }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
 
   // Fresh starts: channels live under half an hour
   const fresh = streams.filter((_, i) => hrs[i] < 0.5);
-  const freshRows: Row[] = fresh.slice(0, 12).map((s) => ({ id: s.id, label: s.name, value: s.viewers, sub: s.game, image: thumb(s.thumb), href: channelUrl(s) }));
+  const freshRows: Row[] = fresh.slice(0, 12).map((s) => channelRow(s, s.viewers));
 
   const fmt = (v: number) => compact(v);
 

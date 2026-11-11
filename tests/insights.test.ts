@@ -7,6 +7,7 @@ const AT = '2026-11-11T12:00:00.000Z';
 
 function stream(over: Partial<Stream> & { id: string }): Stream {
   return {
+    userId: over.id,
     login: over.id,
     name: over.id,
     gameId: 'g1',
@@ -69,6 +70,18 @@ describe('buildInsights', () => {
   it('names languages and sums tags', () => {
     expect(ins.languages.rows[0].label).toBe('English');
     expect(ins.tags.rows[0]).toMatchObject({ label: 'Chill', value: 80_000 });
+  });
+
+  it('gives channel rows an avatar and a link to the channel', () => {
+    const withAvatar = snap([stream({ id: 'zed', login: 'zed', viewers: 10, avatar: 'https://img/zed.png' })]);
+    const row = byKey(withAvatar).channels.rows[0];
+    expect(row).toMatchObject({ kind: 'channel', avatar: 'https://img/zed.png', href: 'https://www.twitch.tv/zed' });
+    expect(byKey(withAvatar).categories.rows[0].kind).toBe('category');
+  });
+
+  it('never links made-up sample channels', () => {
+    const all = buildInsights(sampleSnapshot(new Date(AT)));
+    for (const i of all) for (const r of i.rows) expect(r.href).toBeUndefined();
   });
 
   it('copes with an empty snapshot', () => {

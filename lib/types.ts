@@ -1,7 +1,9 @@
 // One live channel, trimmed from Helix's /streams response to what the board uses.
 export type Stream = {
   id: string;
+  userId: string;
   login: string;
+  avatar?: string; // profile picture, from Helix /users
   name: string;
   gameId: string;
   game: string;
@@ -32,7 +34,9 @@ export type Row = {
   value: number;
   sub?: string;
   image?: string; // a ready-to-use URL
-  href?: string;
+  avatar?: string; // a channel's profile picture
+  kind?: 'channel' | 'category';
+  href?: string; // the channel on twitch.tv
 };
 
 // A stat the board can show. Every view knows how to draw every insight from these fields alone.

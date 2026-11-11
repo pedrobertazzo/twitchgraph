@@ -59,6 +59,7 @@ export function sampleSnapshot(now: Date, count = 500): Snapshot {
     const tags = TAGS.filter(() => r() < 0.18).slice(0, 4);
     streams.push({
       id: `s${i}`,
+      userId: `u${i}`,
       login: name.toLowerCase(),
       name: name[0].toUpperCase() + name.slice(1),
       gameId: `c${game}`,

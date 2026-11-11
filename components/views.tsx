@@ -54,6 +54,31 @@ function Thumb({ row, wide }: { row: Row; wide?: boolean }) {
   );
 }
 
+// A channel's profile picture, or its initial on a colour when there's none (sample data, or Twitch didn't send one).
+export function Avatar({ row, size = 30 }: { row: Row; size?: number }) {
+  if (row.avatar)
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className="v-avatar" src={row.avatar} alt="" width={size} height={size} loading="lazy" />;
+  return (
+    <span className="v-avatar v-mono" style={{ width: size, height: size, background: hashColor(row.label), fontSize: size * 0.42 }} aria-hidden>
+      {row.label.slice(0, 1).toUpperCase()}
+    </span>
+  );
+}
+
+// A whole row that opens the channel on Twitch, or a plain row when there's nowhere to go.
+function RowLink({ row, className, children, style }: { row: Row; className: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  return row.href ? (
+    <a href={row.href} target="_blank" rel="noreferrer" className={`${className} is-link`} style={style} aria-label={`${row.label} on Twitch`}>
+      {children}
+    </a>
+  ) : (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  );
+}
+
 // One large number, like a studio tally light.
 export function Tally(p: P) {
   const { item } = p;
@@ -78,23 +103,21 @@ export function Rundown(p: P) {
   const fit = Math.max(1, Math.floor((height - 8) / per));
   const rows = item.rows.slice(0, fit);
   if (!rows.length) return <Empty />;
-  const wideThumb = rows.some((r) => r.href); // channels have 16:9 thumbnails, categories have box art
   const whole = total(item.rows);
   return (
     <ol className="v-rundown" data-shape={shape}>
       {rows.map((r, i) => (
         <li key={r.id}>
-          <span className="v-rank">{String(i + 1).padStart(2, '0')}</span>
-          <Thumb row={r} wide={wideThumb} />
-          <span className="v-rundown-text">
-            {r.href ? (
-              <a href={r.href} target="_blank" rel="noreferrer" className="v-rundown-label">{r.label}</a>
-            ) : (
+          <RowLink row={r} className="v-rundown-row">
+            <span className="v-rank">{String(i + 1).padStart(2, '0')}</span>
+            {r.kind === 'channel' ? <Avatar row={r} /> : <Thumb row={r} />}
+            <span className="v-rundown-text">
               <span className="v-rundown-label">{r.label}</span>
-            )}
-            {r.sub && <span className="v-sub">{r.sub}</span>}
-          </span>
-          <span className="v-rundown-val">{item.share ? formatValue((r.value / whole) * 100, 'percent') : rowValue(item, r)}</span>
+              {r.sub && <span className="v-sub">{r.sub}</span>}
+            </span>
+            <span className="v-rundown-val">{item.share ? formatValue((r.value / whole) * 100, 'percent') : rowValue(item, r)}</span>
+            {r.href && <span className="v-go" aria-hidden>↗</span>}
+          </RowLink>
         </li>
       ))}
     </ol>
@@ -232,8 +255,8 @@ export function Wall(p: P) {
     <div className="v-wall">
       {rows.map((r, i) => {
         const grow = Math.max(0.6, Math.sqrt(r.value / max) * 3);
-        const body = (
-          <>
+        return (
+          <RowLink key={r.id} row={r} className="v-wall-tile" style={{ flexGrow: grow }}>
             {r.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={r.image} alt="" loading="lazy" />
@@ -241,20 +264,12 @@ export function Wall(p: P) {
               <span className="v-wall-fill" style={{ background: seriesColor(i) }} />
             )}
             <span className="v-wall-cap">
+              {r.kind === 'channel' && <Avatar row={r} size={22} />}
               <b>{r.label}</b>
               <em>{rowValue(item, r)}</em>
             </span>
             {i === 0 && <span className="v-live">LIVE</span>}
-          </>
-        );
-        return r.href ? (
-          <a key={r.id} href={r.href} target="_blank" rel="noreferrer" className="v-wall-tile" style={{ flexGrow: grow }}>
-            {body}
-          </a>
-        ) : (
-          <div key={r.id} className="v-wall-tile" style={{ flexGrow: grow }}>
-            {body}
-          </div>
+          </RowLink>
         );
       })}
     </div>
