@@ -1,20 +1,12 @@
 import { Board } from '@/components/Board';
 import { getSnapshot } from '@/lib/twitch';
 
-export const dynamic = 'force-dynamic';
+// Rebuilt at most once a minute and shared by every visitor; open boards then update themselves from /api/snapshot.
+export const revalidate = 60;
 
 export default async function Page() {
-  let snap;
-  try {
-    snap = await getSnapshot();
-  } catch {
-    return (
-      <main className="page">
-        <Masthead />
-        <p className="offline">Twitch isn’t answering right now. The board will be back in a minute.</p>
-      </main>
-    );
-  }
+  // A failure throws: the last good board keeps being served, or error.tsx shows on a cold start.
+  const snap = await getSnapshot();
   return (
     <main className="page">
       <Masthead />

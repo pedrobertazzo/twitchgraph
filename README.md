@@ -30,7 +30,7 @@ npm run dev
 
 Create the app at [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps). It uses the client-credentials flow only, so no user ever signs in. Without keys the board shows made-up sample data and says so.
 
-One snapshot is shared by every visitor for a minute (about 6 Helix calls), so traffic doesn't multiply API calls.
+Every Helix response is kept for a minute in Next's data cache, which all server instances share, and the page and `/api/snapshot` are rebuilt on the same schedule. One snapshot is about 6 Helix calls a minute however many people are watching; open boards ask `/api/snapshot` once a minute and get the same cached copy.
 
 ```bash
 npm test          # stats

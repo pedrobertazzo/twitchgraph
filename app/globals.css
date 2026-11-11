@@ -304,3 +304,12 @@ a.v-rundown-label:hover { text-decoration: underline; text-underline-offset: 2px
 @media (max-width: 560px) {
   .v-ticker-head small { display: none; }
 }
+.retry { font: inherit; color: var(--on-air); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+
+/* Touch: bigger panel buttons, always visible */
+@media (pointer: coarse) {
+  .fr-head { padding-right: 124px; }
+  .fr-tools { top: 10px; gap: 6px; }
+  .fr-tools button { width: 36px; height: 36px; font-size: 15px; }
+  .fr-ticker .fr-tools { display: none; } /* the ticker is 58px tall; its feed can still be swapped by dragging */
+}

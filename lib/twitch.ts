@@ -5,8 +5,9 @@ import { sampleSnapshot } from './sample';
 const HELIX = 'https://api.twitch.tv/helix';
 // How many of the biggest live channels one snapshot reads. Helix pages hold 100; five pages cover most of the audience.
 export const PAGES = 5;
-// Snapshots are shared by every visitor for this long, so traffic never multiplies API calls.
-const FRESH_MS = 60_000;
+// Every Helix response is kept this long in Next's data cache, which every server instance shares. One snapshot is
+// about 6 calls a minute however many people are watching.
+export const FRESH_S = 60;
 
 type HelixStream = {
   id: string;
@@ -26,29 +27,35 @@ type HelixGame = { id: string; name: string; box_art_url: string };
 
 export const hasKeys = () => Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET);
 
-let token: { value: string; expires: number } | null = null;
+// The app token lives about 60 days. It is cached for a week in the shared data cache; if Twitch rejects it sooner,
+// a fresh one is requested directly and used for the rest of that snapshot.
+let override: string | null = null;
 
-async function appToken(): Promise<string> {
-  if (token && token.expires > Date.now() + 60_000) return token.value;
+async function requestToken(cached: boolean): Promise<string> {
   const body = new URLSearchParams({
     client_id: process.env.TWITCH_CLIENT_ID!,
     client_secret: process.env.TWITCH_CLIENT_SECRET!,
     grant_type: 'client_credentials',
   });
-  const res = await fetch('https://id.twitch.tv/oauth2/token', { method: 'POST', body, cache: 'no-store' });
+  const res = await fetch('https://id.twitch.tv/oauth2/token', {
+    method: 'POST',
+    body,
+    ...(cached ? { cache: 'force-cache' as const, next: { revalidate: 7 * 86_400 } } : { cache: 'no-store' as const }),
+  });
   if (!res.ok) throw new Error(`Twitch token request failed (${res.status})`);
-  const json = (await res.json()) as { access_token: string; expires_in: number };
-  token = { value: json.access_token, expires: Date.now() + json.expires_in * 1000 };
-  return token.value;
+  return ((await res.json()) as { access_token: string }).access_token;
 }
+
+const appToken = async () => override ?? requestToken(true);
 
 async function helix<T>(path: string, retry = true): Promise<{ data: T[]; pagination?: { cursor?: string } }> {
   const res = await fetch(`${HELIX}${path}`, {
     headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID!, Authorization: `Bearer ${await appToken()}` },
-    cache: 'no-store',
+    cache: 'force-cache',
+    next: { revalidate: FRESH_S },
   });
   if (res.status === 401 && retry) {
-    token = null; // revoked or expired early
+    override = await requestToken(false); // revoked or expired early
     return helix(path, false);
   }
   if (!res.ok) throw new Error(`Twitch ${path.split('?')[0]} failed (${res.status})`);
@@ -95,25 +102,9 @@ async function fetchSnapshot(): Promise<Snapshot> {
   return { at: new Date().toISOString(), sample: false, streams: unique, categories };
 }
 
-let cached: { snap: Snapshot; at: number } | null = null;
-let inflight: Promise<Snapshot> | null = null;
-
-// The current snapshot: shared, at most a minute old, and made up when no keys are set.
+// The current snapshot: shared through the data cache, at most a minute old, and made up when no keys are set.
+// A failure throws, so pages and the API route keep serving their last good version.
 export async function getSnapshot(): Promise<Snapshot> {
   if (!hasKeys()) return sampleSnapshot(new Date());
-  if (cached && Date.now() - cached.at < FRESH_MS) return cached.snap;
-  inflight ??= fetchSnapshot()
-    .then((snap) => {
-      cached = { snap, at: Date.now() };
-      return snap;
-    })
-    .finally(() => {
-      inflight = null;
-    });
-  try {
-    return await inflight;
-  } catch (err) {
-    if (cached) return cached.snap; // keep showing the last good board through an outage
-    throw err;
-  }
+  return fetchSnapshot();
 }
