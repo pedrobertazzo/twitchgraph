@@ -154,7 +154,7 @@ export function Bars(p: P) {
         <li key={r.id}>
           <span className="v-bars-label">{r.label}</span>
           <span className="v-bars-track">
-            <i style={{ width: `${(r.value / max) * 100}%`, background: i === 0 ? 'var(--on-air)' : undefined }} />
+            <i style={{ width: `${(r.value / max) * 100}%`, background: i === 0 ? 'var(--brand)' : undefined }} />
           </span>
           <span className="v-bars-val">{rowValue(item, r)}</span>
         </li>
@@ -221,7 +221,7 @@ export function Dial(p: P) {
           const r = rIn + (outer - rIn) * (v / max);
           const p = (a: number, rad: number) => `${c + Math.cos(a) * rad},${c + Math.sin(a) * rad}`;
           const d = `M${p(a0, rIn)} L${p(a0, r)} A${r},${r} 0 0 1 ${p(a1, r)} L${p(a1, rIn)} A${rIn},${rIn} 0 0 0 ${p(a0, rIn)}Z`;
-          return <path key={i} d={d} fill={i === peak ? 'var(--on-air)' : 'var(--meter)'} opacity={i === peak ? 1 : 0.35 + 0.65 * (v / max)} />;
+          return <path key={i} d={d} fill={i === peak ? 'var(--brand)' : 'var(--meter)'} opacity={i === peak ? 1 : 0.35 + 0.65 * (v / max)} />;
         })}
         {labels.map((h) => {
           const a = (h / 24) * Math.PI * 2 - Math.PI / 2;

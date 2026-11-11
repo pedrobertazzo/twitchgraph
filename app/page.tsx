@@ -18,7 +18,7 @@ export default async function Page() {
         </p>
         <p>
           Drag a panel onto another to swap them, and each redraws for its new spot. Built on{' '}
-          <a href="https://pedrobertazzo.github.io/morphgrid/">morphgrid</a>. Not affiliated with Twitch.
+          <a href="https://pedrobertazzo.github.io/morphgrid/">morphgrid</a>. On Air is a fan-made stats site, not affiliated with or endorsed by Twitch. Twitch is a trademark of Twitch Interactive, Inc.
         </p>
       </footer>
     </main>
@@ -33,7 +33,7 @@ function Masthead() {
           <i />
         </span>
         <h1>
-          On Air <span>live Twitch, right now</span>
+          On Air <b>for Twitch</b> <span>what Twitch is watching, live</span>
         </h1>
       </div>
     </header>

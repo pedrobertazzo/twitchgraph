@@ -1,6 +1,6 @@
-# On Air
+# On Air for Twitch
 
-What Twitch is watching right now, as a board you can rearrange. It reads the 500 biggest live channels once a minute and turns them into twelve live stats: top categories, biggest channels, languages, how concentrated the audience is, uptime and marathons, talking vs playing, tags, go-live times, viewers per channel, channels that just went live, and a pulse of the audience since you opened the page.
+What Twitch is watching right now, as a board you can rearrange, in Twitch's own purple and dark greys (red is kept for LIVE, as on Twitch). It is a fan-made stats site, not affiliated with Twitch. It reads the 500 biggest live channels once a minute and turns them into twelve live stats: top categories, biggest channels, languages, how concentrated the audience is, uptime and marathons, talking vs playing, tags, go-live times, viewers per channel, channels that just went live, and a pulse of the audience since you opened the page.
 
 Planned home: **twitch.morphgrid.io**. Built on [morphgrid](https://www.npmjs.com/package/morphgrid): drag a panel onto another and they swap, each redrawn for its new spot.
 

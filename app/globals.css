@@ -1,26 +1,29 @@
 /* On Air: a broadcast control room. Dark by default, with a light "daylight studio" variant. */
 
 :root {
-  --bg: #0b0d11;
-  --panel: #12161c;
-  --panel-2: #181d25;
-  --ink: #e9edf2;
-  --muted: #8a94a3;
-  --line: #222934;
-  --line-strong: #2e3744;
-  --on-air: #ff4433;
-  --on-air-soft: color-mix(in srgb, var(--on-air) 18%, transparent);
-  --meter: #3ddc97;
+  /* Twitch's own dark theme greys and purple, so the board reads as Twitch at a glance. Red is kept for LIVE, as on Twitch. */
+  --bg: #0e0e10;
+  --panel: #18181b;
+  --panel-2: #1f1f23;
+  --ink: #efeff1;
+  --muted: #adadb8;
+  --line: #2a2a2f;
+  --line-strong: #3d3d44;
+  --brand: #9146ff;
+  --brand-2: #bf94ff;
+  --brand-soft: color-mix(in srgb, var(--brand) 22%, transparent);
+  --live: #eb0400;
+  --meter: #a970ff;
   --amber: #ffb020;
 
-  /* Series: tuned for a near-black ground. */
-  --s1: #ff5a47;
-  --s2: #ffb020;
-  --s3: #3ddc97;
+  /* Series: purple first, then colours that stay apart from it. */
+  --s1: #9146ff;
+  --s2: #ff9f2e;
+  --s3: #2fd0b0;
   --s4: #4ea8ff;
-  --s5: #c58bff;
-  --s6: #ff7eb6;
-  --s7: #2fd0e0;
+  --s5: #ff6fae;
+  --s6: #f5d547;
+  --s7: #bf94ff;
   --s8: #7d8798;
 
   --font-sans: system-ui, sans-serif;
@@ -30,22 +33,24 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #eef0f3;
+    --bg: #f7f7f8;
     --panel: #ffffff;
-    --panel-2: #f5f6f8;
-    --ink: #12161c;
-    --muted: #5d6675;
-    --line: #dde1e7;
-    --line-strong: #c9ced6;
-    --on-air: #e02e1f;
-    --meter: #0f9d63;
-    --s1: #e0402e;
-    --s2: #d48700;
-    --s3: #0f9d63;
+    --panel-2: #efeff1;
+    --ink: #0e0e10;
+    --muted: #53535f;
+    --line: #e3e3e8;
+    --line-strong: #c9c9d1;
+    --brand: #772ce8;
+    --brand-2: #9146ff;
+    --live: #d60300;
+    --meter: #8f4bff;
+    --s1: #772ce8;
+    --s2: #d97a00;
+    --s3: #0f9d84;
     --s4: #1f6fd1;
-    --s5: #8a4fd6;
-    --s6: #d23f85;
-    --s7: #0e8c99;
+    --s5: #d23f85;
+    --s6: #b59a00;
+    --s7: #a77bf3;
     --s8: #697386;
     color-scheme: light;
   }
@@ -67,12 +72,12 @@ a { color: inherit; }
 .mast { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 14px; }
 .mast-brand { display: flex; align-items: center; gap: 12px; }
 .mast-mark {
-  width: 34px; height: 34px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 9px;
   display: grid; place-items: center;
-  border: 2px solid var(--on-air);
-  box-shadow: 0 0 0 4px var(--on-air-soft);
+  background: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-soft), 0 6px 18px -6px var(--brand);
 }
-.mast-mark i { width: 12px; height: 12px; border-radius: 50%; background: var(--on-air); animation: tally 2.4s ease-in-out infinite; }
+.mast-mark i { width: 12px; height: 12px; border-radius: 50%; background: #fff; animation: tally 2.4s ease-in-out infinite; }
 .mast h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; font-weight: 700; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .mast h1 span { font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 
@@ -86,7 +91,7 @@ a { color: inherit; }
 .statusbar b { color: var(--ink); font-weight: 600; }
 .onair {
   display: inline-flex; align-items: center; gap: 8px;
-  color: #fff; background: var(--on-air);
+  color: #fff; background: var(--live);
   padding: 3px 10px 3px 8px; border-radius: 3px;
   text-transform: uppercase; font-weight: 700; letter-spacing: 0.14em; font-size: 11px;
 }
@@ -104,12 +109,12 @@ a { color: inherit; }
   --mg-ink: var(--ink);
   --mg-muted: var(--muted);
   --mg-line: var(--line);
-  --mg-accent: var(--on-air);
+  --mg-accent: var(--brand);
   --mg-accent-2: var(--amber);
   --mg-radius: 6px;
   --mg-shadow: none;
-  --mg-shadow-hover: 0 0 0 1px var(--line-strong);
-  --mg-spot: var(--on-air);
+  --mg-shadow-hover: 0 0 0 1px var(--brand), 0 0 18px -6px var(--brand);
+  --mg-spot: var(--brand);
 }
 .board .mg-block {
   background: var(--panel);
@@ -122,7 +127,7 @@ a { color: inherit; }
   position: absolute; inset: 0; pointer-events: none; z-index: 2;
   background: repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in srgb, var(--ink) 2.2%, transparent) 3px 4px);
 }
-.board .mg-block:focus-visible { outline: 2px solid var(--on-air); outline-offset: 2px; }
+.board .mg-block:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* Frame */
 .fr { position: relative; display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0 14px 14px; }
@@ -132,7 +137,7 @@ a { color: inherit; }
   font-family: var(--font-mono), monospace; font-size: 10.5px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
 }
-.tally-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--on-air); box-shadow: 0 0 6px var(--on-air); }
+.tally-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-2); box-shadow: 0 0 6px var(--brand); }
 .fr-title { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fr-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fr-body > .mg-content { flex: 1; min-height: 0; }
@@ -150,8 +155,8 @@ a { color: inherit; }
   border: 1px solid var(--line-strong); background: var(--panel-2); color: var(--ink);
   font: 600 12px/1 var(--font-mono), monospace;
 }
-.fr-tools button:hover { border-color: var(--on-air); color: var(--on-air); }
-.fr-tools button:focus-visible { outline: 2px solid var(--on-air); outline-offset: 1px; }
+.fr-tools button:hover { border-color: var(--brand); color: var(--brand); }
+.fr-tools button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
 
 /* Shared view bits */
 .v-empty { flex: 1; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
@@ -179,13 +184,13 @@ a { color: inherit; }
 a.v-rundown-row { margin: 0 -6px; padding: 0 6px; }
 a.v-rundown-row:hover, a.v-rundown-row:focus-visible { background: var(--panel-2); }
 a.v-rundown-row:hover .v-rundown-label { text-decoration: underline; text-underline-offset: 2px; }
-a.v-rundown-row:focus-visible { outline: 2px solid var(--on-air); outline-offset: -2px; }
+a.v-rundown-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .v-go { font-size: 12px; color: var(--muted); width: 12px; flex: none; }
-a.v-rundown-row:hover .v-go { color: var(--on-air); }
+a.v-rundown-row:hover .v-go { color: var(--brand); }
 .v-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 1.5px var(--line-strong); }
-a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--on-air); }
+a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--brand); }
 .v-rank { font: 600 11px/1 var(--font-mono), monospace; color: var(--muted); width: 18px; flex: none; }
-.v-rundown li:first-child .v-rank { color: var(--on-air); }
+.v-rundown li:first-child .v-rank { color: var(--brand); }
 .v-rundown-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .v-rundown-label { font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
 .v-rundown-val { font: 600 13px/1 var(--font-mono), monospace; font-variant-numeric: tabular-nums; }
@@ -254,7 +259,7 @@ a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--on-air); }
 .v-wall-cap em { font: normal 600 11px/1 var(--font-mono), monospace; }
 .v-live {
   position: absolute; top: 6px; left: 6px;
-  background: var(--on-air); color: #fff; font: 700 9.5px/1 var(--font-mono), monospace; letter-spacing: 0.14em;
+  background: var(--live); color: #fff; font: 700 9.5px/1 var(--font-mono), monospace; letter-spacing: 0.14em;
   padding: 3px 5px; border-radius: 2px;
 }
 
@@ -262,7 +267,7 @@ a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--on-air); }
 .v-ticker { flex: 1; display: flex; align-items: stretch; min-height: 0; height: 100%; }
 .v-ticker-head {
   flex: none; display: flex; align-items: center; gap: 8px; padding: 0 16px;
-  background: var(--on-air); color: #fff;
+  background: var(--brand); color: #fff;
   font: 700 15px/1 var(--font-mono), monospace;
 }
 .v-ticker-head small { font: 500 10.5px/1.2 var(--font-mono), monospace; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.9; max-width: 180px; }
@@ -310,7 +315,7 @@ a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--on-air); }
 @media (max-width: 560px) {
   .v-ticker-head small { display: none; }
 }
-.retry { font: inherit; color: var(--on-air); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+.retry { font: inherit; color: var(--brand); background: none; border: 0; text-decoration: underline; cursor: pointer; }
 
 /* Touch: bigger panel buttons, always visible */
 @media (pointer: coarse) {
@@ -320,5 +325,13 @@ a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--on-air); }
   .fr-ticker .fr-tools { display: none; } /* the ticker is 58px tall; its feed can still be swapped by dragging */
 }
 
-a.v-wall-tile:hover { outline: 2px solid var(--on-air); outline-offset: -2px; }
-a.v-wall-tile:focus-visible { outline: 2px solid var(--on-air); outline-offset: -2px; }
+a.v-wall-tile:hover { outline: 2px solid var(--brand); outline-offset: -2px; }
+a.v-wall-tile:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+
+/* Twitch-style touches */
+.mast h1 b { color: var(--brand-2); font-weight: 700; }
+@media (prefers-color-scheme: light) { .mast h1 b { color: var(--brand); } }
+.v-ticker-head { background: var(--brand); }
+.fr-tools button:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
+.v-rundown li:first-child .v-rank { color: var(--brand-2); }
+.foot a { color: var(--brand-2); }
