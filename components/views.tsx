@@ -240,35 +240,54 @@ export function Dial(p: P) {
   );
 }
 
-// A video wall: tiles sized by value, with art when the rows have it.
+// A wall of channel cards, like Twitch's browse page: the stream picture with LIVE and the viewer count on it, then a
+// clear row with the avatar, the full name and the game. Cards keep one size and the grid fits as many whole ones as
+// the cell holds, so names never get squeezed.
+const CARD_MIN = 150;
+const CARD_GAP = 8;
+const CARD_INFO = 48;
 export function Wall(p: P) {
   const { item } = p;
-  const { w: width, h: height } = inner(p);
-  // Tiles are at least 120×64; fit as many whole tiles as the cell holds, so none is cut off at the bottom.
-  const perRow = Math.max(1, Math.floor((width + 4) / 124));
-  const lines = Math.max(1, Math.floor((height + 4) / 68));
-  const fit = Math.max(1, Math.min(16, perRow * Math.min(lines, 3)));
-  const rows = item.rows.filter((r) => r.value > 0).slice(0, fit);
+  const { w, h } = inner(p);
+  const cols = Math.max(1, Math.floor((w + CARD_GAP) / (CARD_MIN + CARD_GAP)));
+  const colW = (w - CARD_GAP * (cols - 1)) / cols;
+  // As many rows of cards as fit near 16:9, then the pictures stretch a little (between wide and 4:3) to fill the height.
+  const ideal = (colW * 9) / 16 + CARD_INFO + CARD_GAP;
+  const lines = Math.max(1, Math.round((h + CARD_GAP) / ideal));
+  const thumbH = Math.max(40, Math.min(colW * 0.75, Math.max(colW * 0.45, (h - CARD_GAP * (lines - 1)) / lines - CARD_INFO)));
+  const rows = item.rows.filter((r) => r.value > 0).slice(0, Math.min(16, cols * lines));
   if (!rows.length) return <Empty />;
-  const max = rows[0].value || 1;
+  const whole = total(item.rows);
   return (
-    <div className="v-wall">
+    <div className="v-wall" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: `${thumbH + CARD_INFO}px` }}>
       {rows.map((r, i) => {
-        const grow = Math.max(0.6, Math.sqrt(r.value / max) * 3);
+        const value = item.share ? formatValue((r.value / whole) * 100, 'percent') : rowValue(item, r);
         return (
-          <RowLink key={r.id} row={r} className="v-wall-tile" style={{ flexGrow: grow }}>
-            {r.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={r.image} alt="" loading="lazy" />
-            ) : (
-              <span className="v-wall-fill" style={{ background: seriesColor(i) }} />
-            )}
-            <span className="v-wall-cap">
-              {r.kind === 'channel' && <Avatar row={r} size={22} />}
-              <b>{r.label}</b>
-              <em>{rowValue(item, r)}</em>
+          <RowLink key={r.id} row={r} className="v-card">
+            <span className="v-card-pic" style={{ height: thumbH }}>
+              {r.image ? (
+                <>
+                  {r.kind === 'category' && (
+                    // Box art is portrait: a blurred copy fills the frame behind the whole cover.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="v-card-blur" src={r.image} alt="" loading="lazy" aria-hidden />
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className={r.kind === 'category' ? 'v-card-art' : undefined} src={r.image} alt="" loading="lazy" />
+                </>
+              ) : (
+                <span className="v-card-fill" style={{ background: seriesColor(i) }} />
+              )}
+              {r.kind === 'channel' && <span className="v-live">LIVE</span>}
+              <span className="v-card-count">{value}{item.unit === 'viewers' && !item.share ? ' viewers' : ''}</span>
             </span>
-            {i === 0 && <span className="v-live">LIVE</span>}
+            <span className="v-card-info">
+              {r.kind === 'channel' ? <Avatar row={r} size={30} /> : <span className="v-card-rank">{i + 1}</span>}
+              <span className="v-card-text">
+                <b title={r.label}>{r.label}</b>
+                {r.sub && <span>{r.sub}</span>}
+              </span>
+            </span>
           </RowLink>
         );
       })}

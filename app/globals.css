@@ -241,22 +241,28 @@ a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--brand); }
 .v-dial-center { font-family: var(--font-mono), monospace; font-weight: 700; fill: var(--ink); text-anchor: middle; }
 
 /* Wall */
-.v-wall { flex: 1; min-height: 0; display: flex; flex-wrap: wrap; gap: 4px; align-content: stretch; }
-.v-wall-tile {
-  position: relative; flex-basis: 120px; min-height: 64px; overflow: hidden; border-radius: 3px;
-  background: var(--panel-2); text-decoration: none; display: block;
+.v-wall { flex: 1; min-height: 0; display: grid; gap: 8px; align-content: start; }
+.v-card { display: flex; flex-direction: column; min-width: 0; text-decoration: none; color: inherit; border-radius: 6px; }
+.v-card-pic { position: relative; display: block; overflow: hidden; border-radius: 6px; background: var(--panel-2); flex: none; }
+.v-card-pic img, .v-card-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.v-card-fill { opacity: 0.85; }
+.v-card-pic img.v-card-blur { filter: blur(14px) saturate(1.3); transform: scale(1.2); opacity: 0.7; }
+.v-card-pic img.v-card-art { object-fit: contain; }
+.v-card-count {
+  position: absolute; left: 6px; bottom: 6px;
+  background: rgba(0, 0, 0, 0.72); color: #fff; border-radius: 3px; padding: 2px 5px;
+  font: 600 11px/1.2 var(--font-sans), sans-serif; font-variant-numeric: tabular-nums;
 }
-.v-wall-tile img, .v-wall-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.v-wall-fill { opacity: 0.85; }
-.v-wall-cap {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 6px;
-  display: flex; justify-content: space-between; align-items: center; gap: 6px;
-  background: linear-gradient(transparent, rgba(5, 7, 10, 0.85));
-  color: #fff;
-}
-.v-wall-cap .v-avatar { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85); }
-.v-wall-cap b { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.v-wall-cap em { font: normal 600 11px/1 var(--font-mono), monospace; }
+.v-card-info { flex: 1; min-height: 0; display: flex; align-items: center; gap: 8px; padding: 0 2px; }
+.v-card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.v-card-text b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-card-text span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-card-rank { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--panel-2); font: 700 12px/1 var(--font-mono), monospace; color: var(--brand-2); }
+a.v-card:hover .v-card-pic { outline: 2px solid var(--brand); outline-offset: 0; transform: translate(3px, -3px); box-shadow: -3px 3px 0 var(--brand); }
+a.v-card:hover .v-card-text b { color: var(--brand-2); }
+a.v-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.v-card-pic { transition: transform 0.12s ease, box-shadow 0.12s ease; }
+@media (prefers-reduced-motion: reduce) { a.v-card:hover .v-card-pic { transform: none; } }
 .v-live {
   position: absolute; top: 6px; left: 6px;
   background: var(--live); color: #fff; font: 700 9.5px/1 var(--font-mono), monospace; letter-spacing: 0.14em;
@@ -325,8 +331,6 @@ a.v-rundown-row:hover .v-avatar { box-shadow: 0 0 0 2px var(--brand); }
   .fr-ticker .fr-tools { display: none; } /* the ticker is 58px tall; its feed can still be swapped by dragging */
 }
 
-a.v-wall-tile:hover { outline: 2px solid var(--brand); outline-offset: -2px; }
-a.v-wall-tile:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 
 /* Twitch-style touches */
 .mast h1 b { color: var(--brand-2); font-weight: 700; }

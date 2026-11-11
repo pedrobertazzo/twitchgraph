@@ -52,7 +52,7 @@ const LAYOUT: GridLayout = {
     {
       maxWidth: 980,
       columns: '1fr 1fr',
-      rows: '58px 300px 150px 340px 230px 260px 200px 340px',
+      rows: '58px 400px 150px 340px 230px 260px 200px 340px',
       templateAreas: [
         'crawl crawl',
         'wall wall',
@@ -67,7 +67,7 @@ const LAYOUT: GridLayout = {
     {
       maxWidth: 560,
       columns: '1fr',
-      rows: '58px 280px 150px 150px 340px 230px 280px 230px 150px 220px 340px',
+      rows: '58px 420px 150px 150px 340px 230px 280px 230px 150px 220px 340px',
       templateAreas: ['crawl', 'wall', 'main', 'side', 'run', 'levels', 'dial', 'split', 'small1', 'small2', 'run2'],
     },
   ],
