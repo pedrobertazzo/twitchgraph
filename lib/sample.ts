@@ -1,4 +1,4 @@
-import type { Category, Snapshot, Stream } from './types';
+import type { Category, Census, Clip, Extras, HistoryPoint, Snapshot, Stream } from './types';
 
 // A made-up board for when no Twitch keys are configured. Channel names are invented; the page labels it as sample data.
 
@@ -71,8 +71,76 @@ export function sampleSnapshot(now: Date, count = 500): Snapshot {
       thumb: '',
       tags,
       mature: r() < 0.2,
+      broadcasterType: i < 60 || r() < 0.55 ? 'partner' : r() < 0.85 ? 'affiliate' : '',
+      createdAt: new Date(now.getTime() - (r() < 0.08 ? r() * 300 : 300 + r() * 4000) * 86_400_000).toISOString(),
     });
   }
   streams.sort((a, b) => b.viewers - a.viewers);
   return { at: now.toISOString(), sample: true, streams, categories };
+}
+
+// A made-up background collection: a full count with the usual long tail, two days of history following a daily
+// rhythm, and some clips. Labelled as sample data on the page like the rest.
+export function sampleExtras(now: Date): Extras {
+  const snap = sampleSnapshot(now);
+  const r = rng(Math.floor(now.getTime() / 86_400_000) * 31);
+  const topViewers = snap.streams.reduce((a, s) => a + s.viewers, 0);
+  // Beyond the top 500: tens of thousands of small channels, most with a handful of viewers.
+  const tail = Array.from({ length: 72_000 }, () => Math.floor(Math.pow(r(), 3.2) * 140));
+  const all = [...snap.streams.map((s) => s.viewers), ...tail].sort((a, b) => a - b);
+  const viewers = topViewers + tail.reduce((a, v) => a + v, 0);
+  const bands: [string, number, number][] = [
+    ['No viewers', 0, 1], ['1 to 5', 1, 6], ['6 to 20', 6, 21], ['21 to 100', 21, 101], ['101 to 1k', 101, 1_001], ['1k to 10k', 1_001, 10_001], ['10k+', 10_001, Infinity],
+  ];
+  const byGame = new Map<string, { id: string; name: string; viewers: number; channels: number }>();
+  for (const st of snap.streams) {
+    const e = byGame.get(st.gameId) ?? { id: st.gameId, name: st.game, viewers: 0, channels: 0 };
+    e.viewers += st.viewers * 1.6;
+    e.channels += 110;
+    byGame.set(st.gameId, e);
+  }
+  const categories = [...byGame.values()].map((c) => ({ ...c, viewers: Math.round(c.viewers) })).sort((a, b) => b.viewers - a.viewers);
+  const census: Census = {
+    at: now.toISOString(),
+    ms: 84_000,
+    channels: all.length,
+    viewers,
+    median: all[all.length >> 1],
+    bands: bands.map(([label, lo, hi]) => {
+      const inBand = all.filter((v) => v >= lo && v < hi);
+      return { label, channels: inBand.length, viewers: inBand.reduce((a, v) => a + v, 0) };
+    }),
+    categories,
+    languages: [['en', 0.42], ['es', 0.13], ['pt', 0.08], ['ru', 0.07], ['ko', 0.06], ['ja', 0.06], ['fr', 0.05], ['de', 0.05], ['other', 0.08]].map(([code, share]) => ({
+      code: code as string,
+      viewers: Math.round(viewers * (share as number)),
+      channels: Math.round(all.length * (share as number)),
+    })),
+  };
+  // Two days, every 15 minutes: busiest in the European and American evening.
+  const history: HistoryPoint[] = [];
+  for (let t = now.getTime() - 48 * 3_600_000; t <= now.getTime(); t += 15 * 60_000) {
+    const h = new Date(t).getUTCHours() + new Date(t).getUTCMinutes() / 60;
+    const wave = 0.72 + 0.2 * Math.sin(((h - 14) / 24) * 2 * Math.PI) + 0.08 * Math.sin(((h - 1) / 12) * 2 * Math.PI);
+    const k = wave * (0.97 + r() * 0.06);
+    history.push({
+      t,
+      viewers: Math.round(viewers * k),
+      channels: Math.round(all.length * (0.8 + 0.25 * wave)),
+      // each category on its own rhythm, so at any moment some are rising and some falling
+      cats: Object.fromEntries(categories.slice(0, 12).map((c, i) => [c.id, Math.round(c.viewers * k * (1 + 0.12 * Math.sin(t / 7_200_000 + i * 1.7)))])),
+      names: Object.fromEntries(categories.slice(0, 12).map((c) => [c.id, c.name])),
+    });
+  }
+  const clips: Clip[] = snap.streams.slice(0, 12).map((st, i) => ({
+    id: `clip${i}`,
+    url: '',
+    title: ['Unbelievable clutch', 'Chat lost it', 'The perfect throw', 'Did that just happen?', 'Speedrun skip', 'Wholesome moment'][i % 6],
+    broadcaster: st.name,
+    game: st.game,
+    views: Math.round(180_000 / (i + 1.4)),
+    thumb: '',
+    createdAt: new Date(now.getTime() - i * 3_100_000).toISOString(),
+  }));
+  return { census, history, clips };
 }

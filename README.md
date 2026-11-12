@@ -20,6 +20,29 @@ Every stat can be shown in every panel type:
 
 Press **i** (or double-click a panel) to see a stat in every panel type.
 
+## Everyone live, history and clips
+
+The live board reads the 500 biggest channels once a minute. A background **refresher** (`lib/refresher.ts`) adds what that can't show, every 15 minutes:
+
+- **A count of everyone live**, small channels included. Helix lists streams 100 a page, biggest first, so the count reads one chain of pages per big language and a few chains for all other languages in parallel (every ISO 639-1 code plus `other`, so nothing is skipped), paced to stay well under Twitch's 800 calls a minute. That is several hundred to about a thousand calls and takes a minute or two. The list reorders while it's read, so channels seen twice are counted once and a few may be missed: the totals are approximate.
+- **History**: one point per run (everyone's viewers, channels and the 30 biggest categories), kept for two days. It powers Last 24 hours, Busiest hours and Rising now.
+- **Clips of the day**: the most-watched clips of the last 24 hours in the 8 biggest categories, every other run.
+
+Partner/affiliate status and account age come from the profile call the live board already makes for avatars.
+
+Stories from the refresher appear once it has run: All of Twitch, The long tail, Every category, Last 24 hours, Busiest hours, Rising now, Clips of the day. Partners vs affiliates and New faces work without it.
+
+### Setting it up on Vercel (Hobby)
+
+The same setup as the football site, and you can connect the same Upstash databases to this project:
+
+1. **Storage → Upstash for Redis** and **Upstash QStash**, both connected to this project with no variable prefix.
+2. Add `CRON_SECRET` (any long random string) under **Settings → Environment Variables** and redeploy.
+3. In Upstash, **QStash → Schedules → Create**: destination `https://twitch.morphgrid.io/api/refresh`, cron `*/15 * * * *`, retries 0. Requests are checked against QStash's signing keys, so no header is needed.
+4. Check it: `curl -H "Authorization: Bearer <CRON_SECRET>" https://twitch.morphgrid.io/api/refresh` runs a count and reports channels, viewers and how long it took.
+
+Every 15 minutes is 96 QStash messages a day; with the football site's every 3 minutes (480) that's 576, inside QStash's free daily allowance. On a long-running server (`npm start`), `instrumentation.ts` starts the refresher with the server instead.
+
 ## Setup
 
 ```bash

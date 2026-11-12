@@ -14,6 +14,8 @@ export type Stream = {
   thumb: string; // template with {width} and {height}
   tags: string[];
   mature: boolean;
+  broadcasterType?: 'partner' | 'affiliate' | ''; // from Helix /users
+  createdAt?: string; // when the account was made, ISO
 };
 
 export type Category = { id: string; name: string; art: string };
@@ -24,6 +26,7 @@ export type Snapshot = {
   sample: boolean; // true when the data is made up (no API keys configured)
   streams: Stream[];
   categories: Record<string, Category>;
+  extras?: Extras; // what the background refresher collected: everyone live, history, clips
 };
 
 export type Unit = 'viewers' | 'channels' | 'percent' | 'hours' | 'avg';
@@ -35,7 +38,7 @@ export type Row = {
   sub?: string;
   image?: string; // a ready-to-use URL
   avatar?: string; // a channel's profile picture
-  kind?: 'channel' | 'category';
+  kind?: 'channel' | 'category' | 'clip';
   href?: string; // the channel on twitch.tv
 };
 
@@ -51,3 +54,24 @@ export type Insight = {
   clock?: number[]; // 24 values, one per UTC hour, when the stat has a time of day
   sentence: string;
 };
+
+// --- Collected in the background by the refresher (lib/refresher.ts), read from the store ---------------------------
+
+// One full count of everyone live, taken every 15 minutes.
+export type Census = {
+  at: string;
+  ms: number; // how long the count took
+  channels: number;
+  viewers: number;
+  median: number; // viewers of the median channel
+  bands: { label: string; channels: number; viewers: number }[];
+  categories: { id: string; name: string; viewers: number; channels: number }[]; // the 60 biggest
+  languages: { code: string; viewers: number; channels: number }[];
+};
+
+// One point of history per refresher run: everyone's totals and the biggest categories' viewers.
+export type HistoryPoint = { t: number; viewers: number; channels: number; cats: Record<string, number>; names?: Record<string, string> };
+
+export type Clip = { id: string; url: string; title: string; broadcaster: string; game: string; views: number; thumb: string; createdAt: string };
+
+export type Extras = { census: Census | null; history: HistoryPoint[]; clips: Clip[] };

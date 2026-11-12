@@ -110,7 +110,7 @@ export function Rundown(p: P) {
         <li key={r.id}>
           <RowLink row={r} className="v-rundown-row">
             <span className="v-rank">{String(i + 1).padStart(2, '0')}</span>
-            {r.kind === 'channel' ? <Avatar row={r} /> : <Thumb row={r} />}
+            {r.kind === 'channel' ? <Avatar row={r} /> : <Thumb row={r} wide={r.kind === 'clip'} />}
             <span className="v-rundown-text">
               <span className="v-rundown-label">{r.label}</span>
               {r.sub && <span className="v-sub">{r.sub}</span>}
@@ -279,7 +279,7 @@ export function Wall(p: P) {
                 <span className="v-card-fill" style={{ background: seriesColor(i) }} />
               )}
               {r.kind === 'channel' && <span className="v-live">LIVE</span>}
-              <span className="v-card-count">{value}{item.unit === 'viewers' && !item.share ? ' viewers' : ''}</span>
+              <span className="v-card-count">{value}{r.kind === 'clip' ? ' views' : item.unit === 'viewers' && !item.share ? ' viewers' : ''}</span>
             </span>
             <span className="v-card-info">
               {r.kind === 'channel' ? <Avatar row={r} size={30} /> : <span className="v-card-rank">{i + 1}</span>}

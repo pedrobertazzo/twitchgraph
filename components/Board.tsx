@@ -2,7 +2,7 @@
 
 import { MorphGrid, ItemView, type Assignment, type CellDef, type ChromeProps, type GridLayout } from 'morphgrid';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { buildInsights, compact, pulseInsight } from '@/lib/insights';
+import { buildInsights, compact, extraInsights, pulseInsight } from '@/lib/insights';
 import type { Insight, Snapshot } from '@/lib/types';
 import { VIEWS, VIEW_LABELS, type View } from './views';
 
@@ -20,6 +20,10 @@ const CELLS: CellDef<View>[] = [
   { id: 'run2', view: 'rundown', area: 'run2', name: 'the second rundown' },
   { id: 'small1', view: 'tally', area: 'small1', name: 'the small tally' },
   { id: 'small2', view: 'strip', area: 'small2', name: 'the small split' },
+  { id: 'trend', view: 'bars', area: 'trend', name: 'the trend' },
+  { id: 'clips', view: 'wall', area: 'clips', name: 'the clips' },
+  { id: 'census', view: 'tally', area: 'census', name: 'the census' },
+  { id: 'tail', view: 'strip', area: 'tail', name: 'the long tail' },
 ];
 
 const START: Assignment = {
@@ -34,11 +38,15 @@ const START: Assignment = {
   run2: 'marathons',
   small1: 'bigten',
   small2: 'talk',
+  trend: 'trend',
+  clips: 'clips',
+  census: 'everyone',
+  tail: 'longtail',
 };
 
 const LAYOUT: GridLayout = {
   columns: '1.25fr 1.25fr 1fr 1fr',
-  rows: '58px 170px 170px 170px 250px 230px',
+  rows: '58px 170px 170px 170px 250px 230px 250px 330px',
   gap: 10,
   templateAreas: [
     'crawl crawl crawl crawl',
@@ -47,28 +55,21 @@ const LAYOUT: GridLayout = {
     'wall  wall  run   run',
     'levels levels dial split',
     'run2  small1 small1 small2',
+    'trend trend census tail',
+    'clips clips clips clips',
   ],
   breakpoints: [
     {
       maxWidth: 980,
       columns: '1fr 1fr',
-      rows: '58px 400px 150px 340px 230px 260px 200px 340px',
-      templateAreas: [
-        'crawl crawl',
-        'wall wall',
-        'main side',
-        'run run',
-        'levels levels',
-        'dial split',
-        'small1 small2',
-        'run2 run2',
-      ],
+      rows: '58px 400px 150px 340px 230px 260px 200px 340px 250px 160px 230px 420px',
+      templateAreas: ['crawl crawl', 'wall wall', 'main side', 'run run', 'levels levels', 'dial split', 'small1 small2', 'run2 run2', 'trend trend', 'census census', 'tail tail', 'clips clips'],
     },
     {
       maxWidth: 560,
       columns: '1fr',
-      rows: '58px 420px 150px 150px 340px 230px 280px 230px 150px 220px 340px',
-      templateAreas: ['crawl', 'wall', 'main', 'side', 'run', 'levels', 'dial', 'split', 'small1', 'small2', 'run2'],
+      rows: '58px 420px 150px 150px 340px 230px 280px 230px 150px 220px 340px 250px 150px 230px 470px',
+      templateAreas: ['crawl', 'wall', 'main', 'side', 'run', 'levels', 'dial', 'split', 'small1', 'small2', 'run2', 'trend', 'census', 'tail', 'clips'],
     },
   ],
 };
@@ -174,7 +175,7 @@ export function Board({ initial }: { initial: Snapshot }) {
     // The categories also appear as a rundown, under their own id, so the ticker and the list can both show them.
     const catList: Insight = { ...cats, key: 'categories-list', title: 'Category rundown' };
     const pulse = history.length ? pulseInsight(history) : { ...pulseInsight([]), headline: { value: viewers, unit: 'viewers' as const, label: 'watching now; updates every minute' } };
-    return [...list.slice(0, 2), catList, pulse, ...list.slice(2)];
+    return [...list.slice(0, 2), catList, pulse, ...list.slice(2), ...extraInsights(snap, snap.extras)];
   }, [snap, history, viewers]);
 
   const at = new Date(snap.at);

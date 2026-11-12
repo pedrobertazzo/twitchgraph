@@ -1,4 +1,4 @@
-import type { Insight, Row, Snapshot, Stream, Unit } from './types';
+import type { Extras, Insight, Row, Snapshot, Stream, Unit } from './types';
 
 // Categories that are not games. Twitch files them under the same "game" field.
 export const NON_GAME = new Set([
@@ -350,4 +350,169 @@ export function pulseInsight(history: { at: string; viewers: number }[]): Insigh
         ? `The audience has ${change >= 0 ? 'grown' : 'shrunk'} by ${compact(Math.abs(change))} over the ${history.length} refreshes since you opened the board.`
         : 'Leave the board open. It refreshes every minute and draws the audience over time here.',
   };
+}
+
+const hhmm = (t: number) => new Date(t).toISOString().slice(11, 16);
+
+// Stories from the background collection (everyone live, history, clips) and from channel profiles. Each one is left
+// out until its data exists, so a fresh deploy shows the live board alone.
+export function extraInsights(snap: Snapshot, extras: Extras | undefined): Insight[] {
+  const out: Insight[] = [];
+  const topViewers = sum(snap.streams.map((s) => s.viewers));
+  const census = extras?.census;
+
+  if (census && census.viewers > 0) {
+    const none = census.bands[0]?.channels ?? 0;
+    const smallChannels = sum(census.bands.slice(0, 2).map((b) => b.channels));
+    out.push({
+      key: 'everyone',
+      title: 'All of Twitch',
+      kicker: 'Everyone live',
+      unit: 'viewers',
+      headline: { value: census.viewers, unit: 'viewers', label: `watching ${compact(census.channels)} live channels` },
+      rows: census.bands.map((b) => ({ id: b.label, label: b.label, value: b.viewers, sub: `${compact(b.channels)} channels` })),
+      share: true,
+      sentence: `${compact(census.channels)} channels are live, watched by about ${compact(census.viewers)} people. The ${snap.streams.length} biggest hold ${Math.round(pct(topViewers, census.viewers))}% of them.`,
+    });
+    out.push({
+      key: 'longtail',
+      title: 'The long tail',
+      kicker: 'Channels by audience',
+      unit: 'channels',
+      headline: { value: pct(smallChannels, census.channels), unit: 'percent', label: 'of live channels have 5 viewers or fewer' },
+      rows: census.bands.map((b) => ({ id: b.label, label: b.label, value: b.channels, sub: `${compact(b.viewers)} viewers` })),
+      share: true,
+      sentence: `Half of all live channels have ${census.median} ${census.median === 1 ? 'viewer' : 'viewers'} or fewer, and ${compact(none)} have none at all.`,
+    });
+    const cats = census.categories.slice(0, 20);
+    if (cats.length)
+      out.push({
+        key: 'allcategories',
+        title: 'Every category',
+        kicker: 'Everyone live',
+        unit: 'viewers',
+        headline: { value: cats[0].channels, unit: 'channels', label: `channels live in ${cats[0].name}` },
+        rows: cats.map((c) => ({ id: `all-${c.id}`, label: c.name, value: c.viewers, sub: `${compact(c.channels)} channels`, image: boxArt(snap.categories[c.id]?.art), kind: 'category' as const })),
+        sentence: `Counting every channel, not just the biggest, ${cats[0].name} has ${compact(cats[0].viewers)} viewers across ${compact(cats[0].channels)} channels.`,
+      });
+  }
+
+  // History: one point per background run (every 15 minutes), kept for two days.
+  const history = (extras?.history ?? []).slice().sort((a, b) => a.t - b.t);
+  const now = history[history.length - 1];
+  if (now && history.length >= 2) {
+    const day = history.filter((p) => now.t - p.t <= 24 * 3_600_000);
+    const step = Math.max(1, Math.round(day.length / 48));
+    const peak = day.reduce((a, p) => (p.viewers > a.viewers ? p : a));
+    out.push({
+      key: 'trend',
+      title: 'Last 24 hours',
+      kicker: 'Everyone live',
+      unit: 'viewers',
+      headline: { value: now.viewers, unit: 'viewers', label: `now; today’s peak ${compact(peak.viewers)} at ${hhmm(peak.t)} UTC` },
+      rows: day.filter((_, i) => i % step === 0 || i === day.length - 1).map((p) => ({ id: `t${p.t}`, label: hhmm(p.t), value: p.viewers, sub: `${compact(p.channels)} channels` })),
+      sentence: `Right now about ${compact(now.viewers)} people are watching. The peak in the last 24 hours was ${compact(peak.viewers)}, at ${hhmm(peak.t)} UTC.`,
+    });
+
+    // Busiest hours of the day, averaged over everything kept.
+    const byHour = Array.from({ length: 24 }, () => ({ total: 0, n: 0 }));
+    for (const p of history) {
+      const h = new Date(p.t).getUTCHours();
+      byHour[h].total += p.viewers;
+      byHour[h].n++;
+    }
+    const clock = byHour.map((h) => (h.n ? h.total / h.n : 0));
+    if (clock.filter(Boolean).length >= 6) {
+      const best = clock.indexOf(Math.max(...clock));
+      out.push({
+        key: 'hours',
+        title: 'Busiest hours',
+        kicker: 'Time of day, UTC',
+        unit: 'viewers',
+        headline: { value: clock[best], unit: 'viewers', label: `on average at ${String(best).padStart(2, '0')}:00 UTC, the busiest hour` },
+        rows: clock.map((v, h) => ({ id: `hr${h}`, label: `${String(h).padStart(2, '0')}:00`, value: v })),
+        clock,
+        sentence: `Twitch is busiest around ${String(best).padStart(2, '0')}:00 UTC, with about ${compact(clock[best])} watching on average.`,
+      });
+    }
+
+    // Rising: categories against about an hour ago.
+    const before = history.filter((p) => now.t - p.t >= 45 * 60_000).pop();
+    if (before) {
+      const changes = Object.entries(now.cats)
+        .filter(([id, v]) => before.cats[id] && v >= 2_000)
+        .map(([id, v]) => ({ id, name: now.names?.[id] ?? id, v, change: pct(v - before.cats[id], before.cats[id]) }))
+        .sort((a, b) => b.change - a.change);
+      const rising = changes.filter((c) => c.change > 0).slice(0, 10);
+      const falling = changes.filter((c) => c.change < 0).pop();
+      if (rising.length)
+        out.push({
+          key: 'rising',
+          title: 'Rising now',
+          kicker: `Since ${hhmm(before.t)} UTC`,
+          unit: 'percent',
+          headline: { value: rising[0].change, unit: 'percent', label: `more viewers in ${rising[0].name} than an hour ago` },
+          rows: rising.map((c) => ({ id: `r-${c.id}`, label: c.name, value: c.change, sub: `${compact(c.v)} viewers`, image: boxArt(snap.categories[c.id]?.art), kind: 'category' as const })),
+          sentence: `${rising[0].name} is growing fastest, up ${Math.round(rising[0].change)}% in the last hour.${falling ? ` ${falling.name} is falling most, down ${Math.round(-falling.change)}%.` : ''}`,
+        });
+    }
+  }
+
+  // Clips of the day
+  const clips = extras?.clips ?? [];
+  if (clips.length)
+    out.push({
+      key: 'clips',
+      title: 'Clips of the day',
+      kicker: 'Last 24 hours',
+      unit: 'viewers',
+      headline: { value: clips[0].views, unit: 'viewers', label: `views for “${clips[0].title}” by ${clips[0].broadcaster}` },
+      rows: clips.map((c) => ({ id: `clip-${c.id}`, label: c.title, value: c.views, sub: `${c.broadcaster} · ${c.game}`, image: c.thumb || undefined, kind: 'clip' as const, href: snap.sample || !c.url ? undefined : c.url })),
+      sentence: `The most-watched clip of the last day is “${clips[0].title}” from ${clips[0].broadcaster}, with ${compact(clips[0].views)} views.`,
+    });
+
+  // Partners and affiliates, from channel profiles (top channels)
+  const typed = snap.streams.filter((s) => s.broadcasterType !== undefined);
+  if (typed.length) {
+    const groups: [string, string][] = [
+      ['partner', 'Partners'],
+      ['affiliate', 'Affiliates'],
+      ['', 'Neither'],
+    ];
+    const rows = groups.map(([type, label]) => {
+      const inGroup = typed.filter((s) => (s.broadcasterType ?? '') === type);
+      return { id: `bt-${type || 'none'}`, label, value: sum(inGroup.map((s) => s.viewers)), sub: `${inGroup.length} channels` };
+    });
+    const whole = sum(rows.map((r) => r.value));
+    out.push({
+      key: 'partners',
+      title: 'Partners vs affiliates',
+      kicker: `Top ${typed.length}`,
+      unit: 'viewers',
+      headline: { value: pct(rows[0].value, whole), unit: 'percent', label: 'of viewers are watching Twitch partners' },
+      rows,
+      share: true,
+      sentence: `Among the biggest channels, partners hold ${Math.round(pct(rows[0].value, whole))}% of the audience and affiliates ${Math.round(pct(rows[1].value, whole))}%.`,
+    });
+
+    const at = Date.parse(snap.at);
+    const young = snap.streams
+      .filter((s) => s.createdAt && at - Date.parse(s.createdAt) < 365 * 86_400_000)
+      .slice(0, 12)
+      .map((s): Row => {
+        const months = Math.max(1, Math.round((at - Date.parse(s.createdAt!)) / (30.4 * 86_400_000)));
+        return { id: `young-${s.id}`, label: s.name, value: s.viewers, sub: `account ${months} ${months === 1 ? 'month' : 'months'} old · ${s.game}`, image: thumb(s.thumb), avatar: s.avatar, kind: 'channel', href: snap.sample ? undefined : `https://www.twitch.tv/${s.login}` };
+      });
+    if (young.length)
+      out.push({
+        key: 'newfaces',
+        title: 'New faces',
+        kicker: 'Accounts under a year old',
+        unit: 'viewers',
+        headline: { value: young.length, unit: 'channels', label: 'of the biggest channels are on accounts under a year old' },
+        rows: young,
+        sentence: `${young[0].label} is the biggest channel on a young account: ${young[0].sub!.split(' · ')[0]}, with ${compact(young[0].value)} viewers now.`,
+      });
+  }
+  return out;
 }

@@ -1,4 +1,5 @@
 import { Board } from '@/components/Board';
+import { getExtras } from '@/lib/extras';
 import { getSnapshot } from '@/lib/twitch';
 
 // Rebuilt at most once a minute and shared by every visitor; open boards then update themselves from /api/snapshot.
@@ -6,15 +7,17 @@ export const revalidate = 60;
 
 export default async function Page() {
   // A failure throws: the last good board keeps being served, or error.tsx shows on a cold start.
-  const snap = await getSnapshot();
+  const [live, extras] = await Promise.all([getSnapshot(), getExtras()]);
+  const snap = { ...live, extras };
   return (
     <main className="page">
       <Masthead />
       <Board initial={snap} />
       <footer className="foot">
         <p>
-          Counts come from the {snap.streams.length} biggest live channels on Twitch, read once a minute. Smaller channels aren’t counted,
-          so totals are lower than everyone on Twitch.
+          The live board reads the {snap.streams.length} biggest channels once a minute. Every 15 minutes the server also counts
+          everyone live, small channels included, for All of Twitch, the long tail and the last 24 hours; that count is approximate,
+          because the list reorders while it’s read.
         </p>
         <p>
           Drag a panel onto another to swap them, and each redraws for its new spot. Built on{' '}
